@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import StatusBar from "../components/StatusBar";
@@ -9,27 +10,26 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <StatusBar color="#fff" />
+      <StatusBar />
 
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.iconBtn}
+          style={styles.button}
           onPress={() => alert("Геолокация")}
         >
-          <Text style={styles.iconText}>📍</Text>
+          <Text style={styles.buttonText}>Геолокация</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.iconBtn}
+          style={styles.button}
           onPress={() => router.push("/search")}
         >
-          <Text style={styles.iconText}>🔍</Text>
+          <Text style={styles.buttonText}>Поиск</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
         <Text style={styles.cityName}>Будапешт</Text>
         <Text style={styles.temperature}>24°</Text>
-        <Text style={styles.weatherIcon}>⛅</Text>
         <Text style={styles.weatherDesc}>Частично облачно</Text>
 
         <View style={styles.infoCards}>
@@ -47,24 +47,25 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#667eea",
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: "#000",
   },
-  iconText: {
-    fontSize: 20,
+  buttonText: {
+    color: "#000",
+    fontSize: 14,
   },
   content: {
     flex: 1,
@@ -73,25 +74,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cityName: {
-    fontSize: 32,
-    fontWeight: "300",
-    color: "#fff",
+    fontSize: 24,
+    color: "#000",
     marginBottom: 10,
   },
   temperature: {
-    fontSize: 72,
-    fontWeight: "200",
-    color: "#fff",
-    marginBottom: 20,
-  },
-  weatherIcon: {
-    fontSize: 64,
+    fontSize: 48,
+    color: "#000",
     marginBottom: 10,
   },
   weatherDesc: {
-    fontSize: 18,
-    color: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 40,
+    fontSize: 16,
+    color: "#000",
+    marginBottom: 30,
   },
   infoCards: {
     flexDirection: "row",

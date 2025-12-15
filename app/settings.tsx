@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -5,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { useState } from "react";
 import StatusBar from "../components/StatusBar";
 import TabBar from "../components/TabBar";
 
@@ -28,16 +28,8 @@ function SettingItem({
     <View style={styles.settingItem}>
       <Text style={styles.settingLabel}>{label}</Text>
       {isToggle ? (
-        <TouchableOpacity
-          style={[styles.toggle, isActive && styles.toggleActive]}
-          onPress={onToggle}
-        >
-          <View
-            style={[
-              styles.toggleThumb,
-              isActive && styles.toggleThumbActive,
-            ]}
-          />
+        <TouchableOpacity onPress={onToggle}>
+          <Text style={styles.toggleText}>{isActive ? "[ON]" : "[OFF]"}</Text>
         </TouchableOpacity>
       ) : (
         <Text style={styles.settingValue}>{value}</Text>
@@ -53,7 +45,7 @@ export default function Settings() {
 
   return (
     <View style={styles.container}>
-      <StatusBar color="#000" />
+      <StatusBar />
 
       <View style={styles.settingsHeader}>
         <Text style={styles.settingsTitle}>Настройки</Text>
@@ -61,34 +53,42 @@ export default function Settings() {
 
       <ScrollView style={styles.settingsContent}>
         <Text style={styles.sectionTitle}>ЕДИНИЦЫ ИЗМЕРЕНИЯ</Text>
-        <SettingItem label="Температура" value="°C" />
-        <SettingItem label="Скорость ветра" value="км/ч" />
+        <View style={styles.section}>
+          <SettingItem label="Температура" value="°C" />
+          <SettingItem label="Скорость ветра" value="км/ч" />
+        </View>
 
         <Text style={styles.sectionTitle}>УВЕДОМЛЕНИЯ</Text>
-        <SettingItem
-          label="Push уведомления"
-          isToggle
-          isActive={pushNotifications}
-          onToggle={() => setPushNotifications(!pushNotifications)}
-        />
-        <SettingItem
-          label="Погодные предупреждения"
-          isToggle
-          isActive={weatherAlerts}
-          onToggle={() => setWeatherAlerts(!weatherAlerts)}
-        />
+        <View style={styles.section}>
+          <SettingItem
+            label="Push уведомления"
+            isToggle
+            isActive={pushNotifications}
+            onToggle={() => setPushNotifications(!pushNotifications)}
+          />
+          <SettingItem
+            label="Погодные предупреждения"
+            isToggle
+            isActive={weatherAlerts}
+            onToggle={() => setWeatherAlerts(!weatherAlerts)}
+          />
+        </View>
 
         <Text style={styles.sectionTitle}>ВНЕШНИЙ ВИД</Text>
-        <SettingItem
-          label="Тёмная тема"
-          isToggle
-          isActive={darkTheme}
-          onToggle={() => setDarkTheme(!darkTheme)}
-        />
-        <SettingItem label="Язык" value="Русский" />
+        <View style={styles.section}>
+          <SettingItem
+            label="Тёмная тема"
+            isToggle
+            isActive={darkTheme}
+            onToggle={() => setDarkTheme(!darkTheme)}
+          />
+          <SettingItem label="Язык" value="Русский" />
+        </View>
 
         <Text style={styles.sectionTitle}>О ПРИЛОЖЕНИИ</Text>
-        <SettingItem label="Версия" value="1.0.0" />
+        <View style={styles.section}>
+          <SettingItem label="Версия" value="1.0.0" />
+        </View>
       </ScrollView>
 
       <TabBar />
@@ -102,35 +102,42 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   settingsHeader: {
+    backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#000",
   },
   settingsTitle: {
-    fontSize: 32,
-    fontWeight: "700",
+    fontSize: 24,
     color: "#000",
   },
   settingsContent: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
-    marginTop: 30,
-    marginBottom: 15,
+    color: "#000",
+    marginTop: 20,
+    marginBottom: 10,
+    marginHorizontal: 20,
     letterSpacing: 1,
+  },
+  section: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#000",
   },
   settingItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#000",
   },
   settingLabel: {
     fontSize: 16,
@@ -138,31 +145,10 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 16,
-    color: "#999",
+    color: "#000",
   },
-  toggle: {
-    width: 51,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: "#e0e0e0",
-    padding: 2,
-    justifyContent: "center",
-  },
-  toggleActive: {
-    backgroundColor: "#667eea",
-  },
-  toggleThumb: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  toggleThumbActive: {
-    transform: [{ translateX: 20 }],
+  toggleText: {
+    fontSize: 14,
+    color: "#000",
   },
 });

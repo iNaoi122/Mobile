@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 type InfoCardProps = {
@@ -16,8 +17,9 @@ export default function InfoCard({ value, label }: InfoCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 15,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#000",
     padding: 15,
     alignItems: "center",
     justifyContent: "center",
@@ -25,13 +27,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   value: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#fff",
+    fontSize: 16,
+    color: "#000",
     marginBottom: 5,
   },
   label: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "#000",
   },
 });

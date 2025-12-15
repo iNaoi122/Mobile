@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -38,13 +39,10 @@ export default function Search() {
 
   return (
     <View style={styles.container}>
-      <StatusBar color="#000" />
+      <StatusBar />
 
       <View style={styles.searchHeader}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>← Назад</Text>
         </TouchableOpacity>
       </View>
@@ -53,7 +51,7 @@ export default function Search() {
         <TextInput
           style={styles.searchInput}
           placeholder="Поиск города..."
-          placeholderTextColor="#999"
+          placeholderTextColor="#000"
         />
       </View>
 
@@ -110,25 +108,31 @@ const styles = StyleSheet.create({
   searchHeader: {
     paddingHorizontal: 20,
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
   },
   backBtn: {
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#000",
+    paddingHorizontal: 15,
+    alignSelf: "flex-start",
   },
   backBtnText: {
-    fontSize: 16,
-    color: "#667eea",
-    fontWeight: "500",
+    fontSize: 14,
+    color: "#000",
   },
   searchInputContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 15,
   },
   searchInput: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
+    backgroundColor: "#fff",
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#000",
   },
   searchResults: {
     flex: 1,
@@ -136,8 +140,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
+    color: "#000",
     marginTop: 20,
     marginBottom: 10,
     letterSpacing: 1,
@@ -148,24 +151,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#000",
   },
   cityInfo: {
     flex: 1,
   },
   cityName: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 16,
     color: "#000",
     marginBottom: 4,
   },
   cityCountry: {
     fontSize: 14,
-    color: "#999",
+    color: "#000",
   },
   cityTemp: {
-    fontSize: 24,
-    fontWeight: "300",
+    fontSize: 20,
     color: "#000",
   },
 });

@@ -1,6 +1,7 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function StatusBar({ color = "#000" }: { color?: string }) {
+export default function StatusBar() {
   const time = new Date().toLocaleTimeString("ru-RU", {
     hour: "2-digit",
     minute: "2-digit",
@@ -8,8 +9,8 @@ export default function StatusBar({ color = "#000" }: { color?: string }) {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.text, { color }]}>{time}</Text>
-      <Text style={[styles.text, { color }]}>📶 🔋</Text>
+      <Text style={styles.text}>{time}</Text>
+      <Text style={styles.text}>Status</Text>
     </View>
   );
 }
@@ -21,10 +22,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 5,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
   },
   text: {
     fontSize: 14,
-    fontWeight: "500",
+    color: "#000",
   },
 });
