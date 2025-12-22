@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter, usePathname } from "expo-router";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type TabItem = {
   label: string;
@@ -16,9 +17,15 @@ const tabs: TabItem[] = [
 export default function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const colors = useThemeColors();
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.tabBar, borderTopColor: colors.border },
+      ]}
+    >
       {tabs.map((tab) => {
         const isActive = pathname === tab.path;
         return (
@@ -27,7 +34,7 @@ export default function TabBar() {
             style={styles.tabItem}
             onPress={() => router.push(tab.path as any)}
           >
-            <Text style={styles.tabLabel}>
+            <Text style={[styles.tabLabel, { color: colors.text }]}>
               {isActive ? `[${tab.label}]` : tab.label}
             </Text>
           </TouchableOpacity>
@@ -42,10 +49,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "#fff",
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: "#000",
   },
   tabItem: {
     alignItems: "center",
@@ -55,6 +60,5 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 14,
-    color: "#000",
   },
 });
