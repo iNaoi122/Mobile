@@ -202,42 +202,142 @@ export const searchCities = async (query: string): Promise<CityData[]> => {
 
 /**
  * Получить название города по координатам (обратное геокодирование)
+ * Использует Nominatim OpenStreetMap API для reverse geocoding
  */
 export const getCityNameByCoords = async (
   lat: number,
   lon: number,
 ): Promise<{ name: string; country: string }> => {
   try {
-    // Open-Meteo не предоставляет обратное геокодирование
-    // Используем приближенный поиск
+    // Используем Nominatim API для обратного геокодирования
     const response = await fetch(
-      `${GEOCODING_URL}/search?` +
-        `latitude=${lat}&` +
-        `longitude=${lon}&` +
-        `count=1&` +
-        `language=ru&` +
-        `format=json`,
+      `https://nominatim.openstreetmap.org/reverse?` +
+        `lat=${lat}&` +
+        `lon=${lon}&` +
+        `format=json&` +
+        `accept-language=ru&` +
+        `zoom=10`,
+      {
+        headers: {
+          "User-Agent": "WeatherApp/1.0",
+        },
+      },
     );
 
     if (!response.ok) {
-      return { name: "Неизвестно", country: "" };
+      console.warn(
+        `Nominatim API returned status ${response.status}, trying fallback`,
+      );
+      // Fallback: используем Open-Meteo для поиска ближайшего города
+      return await findNearestCity(lat, lon);
     }
 
     const data = await response.json();
 
-    if (data.results && data.results.length > 0) {
+    if (data.error) {
+      console.warn("Nominatim returned error:", data.error);
+      return await findNearestCity(lat, lon);
+    }
+
+    // Извлекаем название города из адреса
+    const address = data.address || {};
+    const cityName =
+      address.city ||
+      address.town ||
+      address.village ||
+      address.municipality ||
+      address.county ||
+      address.state ||
+      "Неизвестно";
+
+    const country = address.country || "";
+
+    return { name: cityName, country };
+  } catch (error) {
+    console.error("Error getting city name from Nominatim:", error);
+    // Fallback: пытаемся найти ближайший город через Open-Meteo
+    try {
+      return await findNearestCity(lat, lon);
+    } catch (fallbackError) {
+      console.error("Fallback also failed:", fallbackError);
+      return { name: "Неизвестно", country: "" };
+    }
+  }
+};
+
+/**
+ * Fallback функция: поиск ближайшего города через Open-Meteo
+ * Ищет известные города в радиусе ~50км от координат
+ */
+async function findNearestCity(
+  lat: number,
+  lon: number,
+): Promise<{ name: string; country: string }> {
+  try {
+    // Поиск городов в радиусе (примерно 0.5 градуса = ~50км)
+    const cities = POPULAR_CITIES.concat([
+      { name: "Будапешт", country: "Венгрия", lat: 47.4979, lon: 19.0402 },
+    ]);
+
+    // Находим ближайший город из списка популярных
+    let nearestCity = cities[0];
+    let minDistance = getDistance(lat, lon, nearestCity.lat, nearestCity.lon);
+
+    for (const city of cities) {
+      const distance = getDistance(lat, lon, city.lat, city.lon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestCity = city;
+      }
+    }
+
+    // Если ближайший город слишком далеко (более 100км), используем координаты
+    if (minDistance > 100) {
       return {
-        name: data.results[0].name,
-        country: data.results[0].country || data.results[0].country_code || "",
+        name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+        country: "",
       };
     }
 
-    return { name: "Неизвестно", country: "" };
+    return { name: nearestCity.name, country: nearestCity.country };
   } catch (error) {
-    console.error("Error getting city name:", error);
-    return { name: "Неизвестно", country: "" };
+    console.error("Error finding nearest city:", error);
+    return {
+      name: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+      country: "",
+    };
   }
-};
+}
+
+/**
+ * Вычислить расстояние между двумя точками (формула гаверсинуса)
+ * Возвращает расстояние в километрах
+ */
+function getDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371; // Радиус Земли в км
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Конвертировать градусы в радианы
+ */
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
 
 /**
  * Получить описание погоды по WMO коду
@@ -275,7 +375,16 @@ function getWeatherDescription(code: number): string {
     99: "Сильная гроза с градом",
   };
 
-  return weatherCodes[code] || "Неизвестно";
+  const description = weatherCodes[code];
+
+  if (!description) {
+    console.warn(
+      `Unknown weather code: ${code}. Please update weatherCodes mapping.`,
+    );
+    return "Неизвестно";
+  }
+
+  return description;
 }
 
 /**

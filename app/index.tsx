@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -28,9 +28,13 @@ export default function Home() {
   } = useWeather();
   const { getTemperatureSymbol, getWindSpeedSymbol } = useSettings();
   const colors = useThemeColors();
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const handleGeolocation = async () => {
+    if (isGettingLocation) return; // Предотвращаем множественные вызовы
+
     try {
+      setIsGettingLocation(true);
       const location = await GeoLocation.getCurrentPositionWithPermission();
       await loadWeatherByCoords(
         location.coords.latitude,
@@ -38,11 +42,22 @@ export default function Home() {
       );
     } catch (error) {
       console.error("Ошибка получения геолокации:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Не удалось получить местоположение",
-      );
+
+      // Улучшенная обработка ошибок с более понятными сообщениями
+      let errorMessage = "Не удалось получить местоположение";
+
+      if (error instanceof Error) {
+        if (error.message.includes("разрешение")) {
+          errorMessage =
+            "Разрешите доступ к местоположению в настройках приложения";
+        } else if (error.message.includes("местоположение")) {
+          errorMessage = error.message;
+        }
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsGettingLocation(false);
     }
   };
 
@@ -115,13 +130,22 @@ export default function Home() {
           <TouchableOpacity
             style={[
               styles.iconButton,
-              { backgroundColor: colors.button, borderColor: colors.border },
+              {
+                backgroundColor: colors.button,
+                borderColor: colors.border,
+                opacity: isGettingLocation ? 0.6 : 1,
+              },
             ]}
             onPress={handleGeolocation}
+            disabled={isGettingLocation}
           >
-            <Ionicons name="location" size={20} color={colors.buttonText} />
+            {isGettingLocation ? (
+              <ActivityIndicator size="small" color={colors.buttonText} />
+            ) : (
+              <Ionicons name="location" size={20} color={colors.buttonText} />
+            )}
             <Text style={[styles.iconButtonText, { color: colors.buttonText }]}>
-              Моя геолокация
+              {isGettingLocation ? "Определение..." : "Моя геолокация"}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity

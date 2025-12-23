@@ -30,6 +30,7 @@ interface WeatherContextData {
 
   // Утилиты
   lastUpdateTime: number | null;
+  lastKnownWeatherCode: number | undefined;
 }
 
 const WeatherContext = createContext<WeatherContextData | undefined>(undefined);
@@ -63,6 +64,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
+  const [lastKnownWeatherCode, setLastKnownWeatherCode] = useState<
+    number | undefined
+  >(undefined);
 
   // Инициализация базы данных и загрузка данных при монтировании
   useEffect(() => {
@@ -169,6 +173,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
           };
 
           setCurrentWeather(weatherData);
+          setLastKnownWeatherCode(cachedWeather.weatherCode);
 
           if (cachedHourly && cachedDaily) {
             setForecast({
@@ -221,6 +226,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       setCurrentWeather(weather);
       setForecast(forecastData);
       setLastUpdateTime(Date.now());
+      setLastKnownWeatherCode(weather.weatherCode);
       setError(null);
     } catch (err) {
       console.error("Error loading weather for city:", err);
@@ -326,18 +332,51 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       setForecast(forecastData);
       setCurrentCityState(city);
       setLastUpdateTime(Date.now());
+      setLastKnownWeatherCode(weather.weatherCode);
       setError(null);
 
-      // Сохранить
-      await Storage.saveCurrentCity(city);
-      await Storage.addRecentCity(city);
-
-      // Обновить список недавних городов
-      const recent = await Storage.getRecentCities();
-      setRecentCities(recent);
+      // Сохранить в фоновом режиме (не блокируем UI)
+      Promise.all([
+        Storage.saveCurrentCity(city),
+        Storage.addRecentCity(city),
+        databaseService.saveWeatherData({
+          city: weather.city,
+          country: weather.country,
+          latitude: lat,
+          longitude: lon,
+          temperature: weather.temperature,
+          feelsLike: weather.feelsLike,
+          description: weather.description,
+          humidity: weather.humidity,
+          pressure: weather.pressure,
+          windSpeed: weather.windSpeed,
+          weatherCode: weather.weatherCode,
+          timestamp: Date.now(),
+        }),
+        databaseService.saveForecastData(
+          city.name,
+          "hourly",
+          forecastData.hourly,
+        ),
+        databaseService.saveForecastData(
+          city.name,
+          "daily",
+          forecastData.daily,
+        ),
+      ])
+        .then(async () => {
+          // Обновить список недавних городов после сохранения
+          const recent = await Storage.getRecentCities();
+          setRecentCities(recent);
+        })
+        .catch((err) => {
+          console.error("Error saving data in background:", err);
+          // Не показываем ошибку пользователю, так как данные уже загружены
+        });
     } catch (err) {
       console.error("Error loading weather by coords:", err);
       setError("Не удалось определить местоположение");
+      throw err; // Пробрасываем ошибку для обработки в UI
     } finally {
       setIsLoading(false);
     }
@@ -356,6 +395,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     setCity,
     loadWeatherByCoords,
     lastUpdateTime,
+    lastKnownWeatherCode,
   };
 
   return (
