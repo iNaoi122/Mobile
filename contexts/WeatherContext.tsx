@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import * as WeatherAPI from "../services/weatherApi";
 import * as Storage from "../services/storage";
+import { databaseService } from "../services/database";
 import { useSettings } from "./SettingsContext";
 
 interface WeatherContextData {
@@ -63,10 +64,24 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
 
-  // Загрузка данных при монтировании
+  // Инициализация базы данных и загрузка данных при монтировании
   useEffect(() => {
-    initializeWeatherData();
+    initializeDatabase();
   }, []);
+
+  // Инициализация базы данных
+  const initializeDatabase = async () => {
+    try {
+      await databaseService.init();
+      // Очистить старые данные при запуске
+      await databaseService.cleanOldData();
+      initializeWeatherData();
+    } catch (error) {
+      console.error("Ошибка инициализации базы данных:", error);
+      // Продолжить загрузку даже если БД не инициализировалась
+      initializeWeatherData();
+    }
+  };
 
   // Автообновление каждые 5 минут
   useEffect(() => {
@@ -123,13 +138,86 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     try {
       const units = temperatureUnit === "metric" ? "metric" : "imperial";
 
-      // Загрузить текущую погоду и прогноз параллельно
+      // Сначала попробовать загрузить из кэша
+      const isCacheValid = await databaseService.isCacheValid(city.name);
+
+      if (isCacheValid) {
+        // Загрузить из кэша
+        const cachedWeather = await databaseService.getWeatherData(city.name);
+        const cachedHourly = await databaseService.getForecastData(
+          city.name,
+          "hourly",
+        );
+        const cachedDaily = await databaseService.getForecastData(
+          city.name,
+          "daily",
+        );
+
+        if (cachedWeather) {
+          // Преобразовать кэшированные данные в формат WeatherData
+          const weatherData: WeatherAPI.WeatherData = {
+            city: cachedWeather.city,
+            country: cachedWeather.country,
+            temperature: cachedWeather.temperature,
+            feelsLike: cachedWeather.feelsLike,
+            description: cachedWeather.description,
+            humidity: cachedWeather.humidity,
+            pressure: cachedWeather.pressure,
+            windSpeed: cachedWeather.windSpeed,
+            weatherCode: cachedWeather.weatherCode,
+            dt: cachedWeather.timestamp,
+          };
+
+          setCurrentWeather(weatherData);
+
+          if (cachedHourly && cachedDaily) {
+            setForecast({
+              hourly: cachedHourly,
+              daily: cachedDaily,
+            });
+          }
+
+          setLastUpdateTime(cachedWeather.timestamp);
+          setError(null);
+          return;
+        }
+      }
+
+      // Если кэш неактуален или отсутствует, загрузить с API
       const [weather, forecastData] = await Promise.all([
         WeatherAPI.getCurrentWeatherByCoords(city.lat, city.lon, units),
         WeatherAPI.getForecastByCoords(city.lat, city.lon, units),
       ]);
 
-      // Обновить состояние немедленно
+      // Сохранить в кэш
+      await databaseService.saveWeatherData({
+        city: weather.city,
+        country: weather.country,
+        latitude: city.lat,
+        longitude: city.lon,
+        temperature: weather.temperature,
+        feelsLike: weather.feelsLike,
+        description: weather.description,
+        humidity: weather.humidity,
+        pressure: weather.pressure,
+        windSpeed: weather.windSpeed,
+        weatherCode: weather.weatherCode,
+        timestamp: Date.now(),
+      });
+
+      // Сохранить прогноз в кэш
+      await databaseService.saveForecastData(
+        city.name,
+        "hourly",
+        forecastData.hourly,
+      );
+      await databaseService.saveForecastData(
+        city.name,
+        "daily",
+        forecastData.daily,
+      );
+
+      // Обновить состояние
       setCurrentWeather(weather);
       setForecast(forecastData);
       setLastUpdateTime(Date.now());

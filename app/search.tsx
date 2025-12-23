@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import StatusBar from "../components/StatusBar";
+import WeatherBackground from "../components/WeatherBackground";
 import { useWeather } from "../contexts/WeatherContext";
 import { searchCities, CityData, POPULAR_CITIES } from "../services/weatherApi";
 import { useThemeColors } from "../hooks/useThemeColors";
@@ -28,12 +30,24 @@ function CityItem({ name, country, onPress }: CityItemProps) {
       style={[styles.cityItem, { borderBottomColor: colors.border }]}
       onPress={onPress}
     >
+      <Ionicons
+        name="location-outline"
+        size={20}
+        color={colors.text}
+        style={{ opacity: 0.6 }}
+      />
       <View style={styles.cityInfo}>
         <Text style={[styles.cityName, { color: colors.text }]}>{name}</Text>
         <Text style={[styles.cityCountry, { color: colors.text }]}>
           {country}
         </Text>
       </View>
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={colors.text}
+        style={{ opacity: 0.4 }}
+      />
     </TouchableOpacity>
   );
 }
@@ -76,62 +90,107 @@ export default function Search() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar />
+    <WeatherBackground>
+      <View style={styles.container}>
+        <StatusBar />
 
-      <View style={[styles.searchHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.backBtn,
-            { borderColor: colors.border, backgroundColor: colors.button },
-          ]}
-          onPress={() => router.back()}
+        <View
+          style={[styles.searchHeader, { borderBottomColor: colors.border }]}
         >
-          <Text style={[styles.backBtnText, { color: colors.buttonText }]}>
-            ← Назад
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchInputContainer}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            {
-              backgroundColor: colors.input,
-              borderColor: colors.border,
-              color: colors.text,
-            },
-          ]}
-          placeholder="Поиск города..."
-          placeholderTextColor={colors.inputPlaceholder}
-          value={searchQuery}
-          onChangeText={handleSearch}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
-      </View>
-
-      <ScrollView style={styles.searchResults}>
-        {isSearching && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.loader} />
-            <Text style={[styles.loadingText, { color: colors.text }]}>
-              Поиск...
+          <TouchableOpacity
+            style={[
+              styles.backBtn,
+              { borderColor: colors.border, backgroundColor: colors.button },
+            ]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={18} color={colors.buttonText} />
+            <Text style={[styles.backBtnText, { color: colors.buttonText }]}>
+              Назад
             </Text>
-          </View>
-        )}
+          </TouchableOpacity>
+        </View>
 
-        {!isSearching &&
-          searchQuery.length >= 2 &&
-          searchResults.length > 0 && (
+        <View style={styles.searchInputContainer}>
+          <View
+            style={[
+              styles.searchInputWrapper,
+              { borderColor: colors.border, backgroundColor: colors.input },
+            ]}
+          >
+            <Ionicons name="search" size={20} color={colors.inputPlaceholder} />
+            <TextInput
+              style={[
+                styles.searchInput,
+                {
+                  color: colors.text,
+                },
+              ]}
+              placeholder="Поиск города..."
+              placeholderTextColor={colors.inputPlaceholder}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.inputPlaceholder}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <ScrollView style={styles.searchResults}>
+          {isSearching && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.loader} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Поиск...
+              </Text>
+            </View>
+          )}
+
+          {!isSearching &&
+            searchQuery.length >= 2 &&
+            searchResults.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  РЕЗУЛЬТАТЫ ПОИСКА
+                </Text>
+                {searchResults.map((city, index) => (
+                  <CityItem
+                    key={`search-${index}`}
+                    name={city.name}
+                    country={city.country}
+                    onPress={() => handleCitySelect(city)}
+                  />
+                ))}
+              </>
+            )}
+
+          {!isSearching &&
+            searchQuery.length >= 2 &&
+            searchResults.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.text }]}>
+                  Города не найдены
+                </Text>
+              </View>
+            )}
+
+          {!searchQuery && recentCities.length > 0 && (
             <>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                РЕЗУЛЬТАТЫ ПОИСКА
+                НЕДАВНИЕ
               </Text>
-              {searchResults.map((city, index) => (
+              {recentCities.map((city, index) => (
                 <CityItem
-                  key={`search-${index}`}
+                  key={`recent-${index}`}
                   name={city.name}
                   country={city.country}
                   onPress={() => handleCitySelect(city)}
@@ -140,49 +199,24 @@ export default function Search() {
             </>
           )}
 
-        {!isSearching &&
-          searchQuery.length >= 2 &&
-          searchResults.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: colors.text }]}>
-                Города не найдены
+          {!searchQuery && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                ПОПУЛЯРНЫЕ ГОРОДА
               </Text>
-            </View>
+              {POPULAR_CITIES.map((city, index) => (
+                <CityItem
+                  key={`popular-${index}`}
+                  name={city.name}
+                  country={city.country}
+                  onPress={() => handleCitySelect(city)}
+                />
+              ))}
+            </>
           )}
-
-        {!searchQuery && recentCities.length > 0 && (
-          <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              НЕДАВНИЕ
-            </Text>
-            {recentCities.map((city, index) => (
-              <CityItem
-                key={`recent-${index}`}
-                name={city.name}
-                country={city.country}
-                onPress={() => handleCitySelect(city)}
-              />
-            ))}
-          </>
-        )}
-
-        {!searchQuery && (
-          <>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              ПОПУЛЯРНЫЕ ГОРОДА
-            </Text>
-            {POPULAR_CITIES.map((city, index) => (
-              <CityItem
-                key={`popular-${index}`}
-                name={city.name}
-                country={city.country}
-                onPress={() => handleCitySelect(city)}
-              />
-            ))}
-          </>
-        )}
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </WeatherBackground>
   );
 }
 
@@ -196,23 +230,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     borderWidth: 1,
     paddingHorizontal: 15,
     alignSelf: "flex-start",
+    borderRadius: 8,
+    gap: 6,
   },
   backBtnText: {
     fontSize: 14,
+    fontWeight: "500",
   },
   searchInputContainer: {
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
   searchInput: {
-    paddingHorizontal: 15,
+    flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    borderWidth: 1,
   },
   searchResults: {
     flex: 1,
@@ -230,9 +276,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 15,
     borderBottomWidth: 1,
+    gap: 12,
   },
   cityInfo: {
     flex: 1,
+    marginLeft: 4,
   },
   cityName: {
     fontSize: 16,

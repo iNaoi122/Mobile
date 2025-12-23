@@ -7,127 +7,174 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import StatusBar from "../components/StatusBar";
 import TabBar from "../components/TabBar";
 import InfoCard from "../components/InfoCard";
+import WeatherBackground from "../components/WeatherBackground";
 import { useWeather } from "../contexts/WeatherContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { useThemeColors } from "../hooks/useThemeColors";
 
 export default function Home() {
   const router = useRouter();
-  const { currentWeather, isLoading, error, refreshWeatherData } = useWeather();
+  const {
+    currentWeather,
+    isLoading,
+    error,
+    refreshWeatherData,
+    loadWeatherByCoords,
+  } = useWeather();
   const { getTemperatureSymbol, getWindSpeedSymbol } = useSettings();
   const colors = useThemeColors();
 
+  const handleGeolocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Разрешение на доступ к геолокации не предоставлено");
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      await loadWeatherByCoords(
+        location.coords.latitude,
+        location.coords.longitude,
+      );
+    } catch (error) {
+      console.error("Ошибка получения геолокации:", error);
+      alert("Не удалось получить местоположение");
+    }
+  };
+
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.loader} />
-          <Text style={[styles.loadingText, { color: colors.text }]}>
-            Загрузка данных...
-          </Text>
+      <WeatherBackground>
+        <View style={styles.container}>
+          <StatusBar />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.loader} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              Загрузка данных...
+            </Text>
+          </View>
+          <TabBar />
         </View>
-        <TabBar />
-      </View>
+      </WeatherBackground>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar />
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: colors.text }]}>
-            Ошибка: {error}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: colors.button, borderColor: colors.border },
-            ]}
-            onPress={refreshWeatherData}
-          >
-            <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-              Повторить
+      <WeatherBackground>
+        <View style={styles.container}>
+          <StatusBar />
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: colors.text }]}>
+              Ошибка: {error}
             </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: colors.button, borderColor: colors.border },
+              ]}
+              onPress={refreshWeatherData}
+            >
+              <Text style={[styles.buttonText, { color: colors.buttonText }]}>
+                Повторить
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TabBar />
         </View>
-        <TabBar />
-      </View>
+      </WeatherBackground>
     );
   }
 
   if (!currentWeather) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar />
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: colors.text }]}>
-            Нет данных о погоде
-          </Text>
+      <WeatherBackground>
+        <View style={styles.container}>
+          <StatusBar />
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: colors.text }]}>
+              Нет данных о погоде
+            </Text>
+          </View>
+          <TabBar />
         </View>
-        <TabBar />
-      </View>
+      </WeatherBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar />
+    <WeatherBackground weatherCode={currentWeather.weatherCode}>
+      <View style={styles.container}>
+        <StatusBar />
 
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: colors.button, borderColor: colors.border },
-          ]}
-          onPress={() => alert("Геолокация")}
-        >
-          <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-            Геолокация
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: colors.button, borderColor: colors.border },
-          ]}
-          onPress={() => router.push("/search")}
-        >
-          <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-            Поиск
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        <Text style={[styles.cityName, { color: colors.text }]}>
-          {currentWeather.city}
-          {currentWeather.country && `, ${currentWeather.country}`}
-        </Text>
-        <Text style={[styles.temperature, { color: colors.text }]}>
-          {currentWeather.temperature}
-          {getTemperatureSymbol()}
-        </Text>
-        <Text style={[styles.weatherDesc, { color: colors.text }]}>
-          {currentWeather.description}
-        </Text>
-
-        <View style={styles.infoCards}>
-          <InfoCard
-            value={`${currentWeather.windSpeed} ${getWindSpeedSymbol()}`}
-            label="Ветер"
-          />
-          <InfoCard value={`${currentWeather.humidity}%`} label="Влажность" />
-          <InfoCard value={`${currentWeather.pressure}`} label="Давление" />
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.button, borderColor: colors.border },
+            ]}
+            onPress={handleGeolocation}
+          >
+            <Ionicons name="location" size={20} color={colors.buttonText} />
+            <Text style={[styles.iconButtonText, { color: colors.buttonText }]}>
+              Моя геолокация
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.iconButton,
+              { backgroundColor: colors.button, borderColor: colors.border },
+            ]}
+            onPress={() => router.push("/search")}
+          >
+            <Ionicons name="search" size={20} color={colors.buttonText} />
+            <Text style={[styles.iconButtonText, { color: colors.buttonText }]}>
+              Поиск города
+            </Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      <TabBar />
-    </View>
+        <View style={styles.content}>
+          <Text style={[styles.cityName, { color: colors.text }]}>
+            {currentWeather.city}
+            {currentWeather.country && `, ${currentWeather.country}`}
+          </Text>
+          <Text style={[styles.temperature, { color: colors.text }]}>
+            {currentWeather.temperature}
+            {getTemperatureSymbol()}
+          </Text>
+          <Text style={[styles.weatherDesc, { color: colors.text }]}>
+            {currentWeather.description}
+          </Text>
+
+          <View style={styles.infoCards}>
+            <InfoCard
+              icon="speedometer-outline"
+              value={`${currentWeather.windSpeed} ${getWindSpeedSymbol()}`}
+              label="Ветер"
+            />
+            <InfoCard
+              icon="water-outline"
+              value={`${currentWeather.humidity}%`}
+              label="Влажность"
+            />
+            <InfoCard
+              icon="speedometer"
+              value={`${currentWeather.pressure}`}
+              label="Давление"
+            />
+          </View>
+        </View>
+
+        <TabBar />
+      </View>
+    </WeatherBackground>
   );
 }
 
@@ -141,11 +188,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
+    gap: 10,
+  },
+  iconButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: 6,
+    flex: 1,
+    justifyContent: "center",
+  },
+  iconButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   button: {
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderWidth: 1,
+    borderRadius: 8,
   },
   buttonText: {
     fontSize: 14,
