@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
+import * as GeoLocation from "../services/geolocation";
 import StatusBar from "../components/StatusBar";
 import TabBar from "../components/TabBar";
 import InfoCard from "../components/InfoCard";
@@ -31,20 +31,18 @@ export default function Home() {
 
   const handleGeolocation = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        alert("Разрешение на доступ к геолокации не предоставлено");
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
+      const location = await GeoLocation.getCurrentPositionWithPermission();
       await loadWeatherByCoords(
         location.coords.latitude,
         location.coords.longitude,
       );
     } catch (error) {
       console.error("Ошибка получения геолокации:", error);
-      alert("Не удалось получить местоположение");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Не удалось получить местоположение",
+      );
     }
   };
 
