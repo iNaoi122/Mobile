@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -5,128 +6,257 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import StatusBar from "../components/StatusBar";
+import WeatherBackground from "../components/WeatherBackground";
+import { useWeather } from "../contexts/WeatherContext";
+import { searchCities, CityData, POPULAR_CITIES } from "../services/weatherApi";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type CityItemProps = {
   name: string;
   country: string;
-  temp: string;
   onPress: () => void;
 };
 
-function CityItem({ name, country, temp, onPress }: CityItemProps) {
+function CityItem({ name, country, onPress }: CityItemProps) {
+  const colors = useThemeColors();
+
   return (
-    <TouchableOpacity style={styles.cityItem} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.cityItem, { borderBottomColor: colors.border }]}
+      onPress={onPress}
+    >
+      <Ionicons
+        name="location-outline"
+        size={20}
+        color={colors.text}
+        style={{ opacity: 0.6 }}
+      />
       <View style={styles.cityInfo}>
-        <Text style={styles.cityName}>{name}</Text>
-        <Text style={styles.cityCountry}>{country}</Text>
+        <Text style={[styles.cityName, { color: colors.text }]}>{name}</Text>
+        <Text style={[styles.cityCountry, { color: colors.text }]}>
+          {country}
+        </Text>
       </View>
-      <Text style={styles.cityTemp}>{temp}°</Text>
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={colors.text}
+        style={{ opacity: 0.4 }}
+      />
     </TouchableOpacity>
   );
 }
 
 export default function Search() {
   const router = useRouter();
+  const { setCity, recentCities } = useWeather();
+  const colors = useThemeColors();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CityData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const selectCity = (city: string, temp: string) => {
-    alert(`Выбран город: ${city}, ${temp}°`);
-    router.back();
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const results = await searchCities(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Error searching cities:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleCitySelect = async (city: CityData) => {
+    try {
+      await setCity(city);
+      router.back();
+    } catch (error) {
+      console.error("Error selecting city:", error);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar color="#000" />
+    <WeatherBackground>
+      <View style={styles.container}>
+        <StatusBar />
 
-      <View style={styles.searchHeader}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
+        <View
+          style={[styles.searchHeader, { borderBottomColor: colors.border }]}
         >
-          <Text style={styles.backBtnText}>← Назад</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.backBtn,
+              { borderColor: colors.border, backgroundColor: colors.button },
+            ]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={18} color={colors.buttonText} />
+            <Text style={[styles.backBtnText, { color: colors.buttonText }]}>
+              Назад
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchInputContainer}>
+          <View
+            style={[
+              styles.searchInputWrapper,
+              { borderColor: colors.border, backgroundColor: colors.input },
+            ]}
+          >
+            <Ionicons name="search" size={20} color={colors.inputPlaceholder} />
+            <TextInput
+              style={[
+                styles.searchInput,
+                {
+                  color: colors.text,
+                },
+              ]}
+              placeholder="Поиск города..."
+              placeholderTextColor={colors.inputPlaceholder}
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch("")}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.inputPlaceholder}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <ScrollView style={styles.searchResults}>
+          {isSearching && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.loader} />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Поиск...
+              </Text>
+            </View>
+          )}
+
+          {!isSearching &&
+            searchQuery.length >= 2 &&
+            searchResults.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  РЕЗУЛЬТАТЫ ПОИСКА
+                </Text>
+                {searchResults.map((city, index) => (
+                  <CityItem
+                    key={`search-${index}`}
+                    name={city.name}
+                    country={city.country}
+                    onPress={() => handleCitySelect(city)}
+                  />
+                ))}
+              </>
+            )}
+
+          {!isSearching &&
+            searchQuery.length >= 2 &&
+            searchResults.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.text }]}>
+                  Города не найдены
+                </Text>
+              </View>
+            )}
+
+          {!searchQuery && recentCities.length > 0 && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                НЕДАВНИЕ
+              </Text>
+              {recentCities.map((city, index) => (
+                <CityItem
+                  key={`recent-${index}`}
+                  name={city.name}
+                  country={city.country}
+                  onPress={() => handleCitySelect(city)}
+                />
+              ))}
+            </>
+          )}
+
+          {!searchQuery && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                ПОПУЛЯРНЫЕ ГОРОДА
+              </Text>
+              {POPULAR_CITIES.map((city, index) => (
+                <CityItem
+                  key={`popular-${index}`}
+                  name={city.name}
+                  country={city.country}
+                  onPress={() => handleCitySelect(city)}
+                />
+              ))}
+            </>
+          )}
+        </ScrollView>
       </View>
-
-      <View style={styles.searchInputContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Поиск города..."
-          placeholderTextColor="#999"
-        />
-      </View>
-
-      <ScrollView style={styles.searchResults}>
-        <Text style={styles.sectionTitle}>НЕДАВНИЕ</Text>
-        <CityItem
-          name="Будапешт"
-          country="Венгрия"
-          temp="24"
-          onPress={() => selectCity("Будапешт", "24")}
-        />
-        <CityItem
-          name="Париж"
-          country="Франция"
-          temp="20"
-          onPress={() => selectCity("Париж", "20")}
-        />
-
-        <Text style={styles.sectionTitle}>ПОПУЛЯРНЫЕ ГОРОДА</Text>
-        <CityItem
-          name="Лондон"
-          country="Великобритания"
-          temp="16"
-          onPress={() => selectCity("Лондон", "16")}
-        />
-        <CityItem
-          name="Москва"
-          country="Россия"
-          temp="18"
-          onPress={() => selectCity("Москва", "18")}
-        />
-        <CityItem
-          name="Токио"
-          country="Япония"
-          temp="22"
-          onPress={() => selectCity("Токио", "22")}
-        />
-        <CityItem
-          name="Нью-Йорк"
-          country="США"
-          temp="19"
-          onPress={() => selectCity("Нью-Йорк", "19")}
-        />
-      </ScrollView>
-    </View>
+    </WeatherBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   searchHeader: {
     paddingHorizontal: 20,
     paddingVertical: 10,
+    borderBottomWidth: 1,
   },
   backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    alignSelf: "flex-start",
+    borderRadius: 8,
+    gap: 6,
   },
   backBtnText: {
-    fontSize: 16,
-    color: "#667eea",
+    fontSize: 14,
     fontWeight: "500",
   },
   searchInputContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 15,
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   searchInput: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    paddingHorizontal: 15,
+    flex: 1,
     paddingVertical: 12,
     fontSize: 16,
   },
@@ -136,8 +266,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
     marginTop: 20,
     marginBottom: 10,
     letterSpacing: 1,
@@ -148,24 +276,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    gap: 12,
   },
   cityInfo: {
     flex: 1,
+    marginLeft: 4,
   },
   cityName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
+    fontSize: 16,
     marginBottom: 4,
   },
   cityCountry: {
     fontSize: 14,
-    color: "#999",
   },
-  cityTemp: {
-    fontSize: 24,
-    fontWeight: "300",
-    color: "#000",
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
   },
 });

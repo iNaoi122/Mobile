@@ -1,12 +1,11 @@
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import { useEffect } from "react";
 import { useRouter } from "expo-router";
 
 export default function Splash() {
   const router = useRouter();
 
   useEffect(() => {
-    // Переход на главный экран через 2 секунды
     const timer = setTimeout(() => {
       router.replace("/");
     }, 2000);
@@ -16,10 +15,9 @@ export default function Splash() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>☀️</Text>
-      <Text style={styles.appName}>Weather</Text>
+      <Text style={styles.appName}>Weather App</Text>
       <Text style={styles.subtitle}>Прогноз погоды</Text>
-      <ActivityIndicator size="large" color="#fff" style={styles.loader} />
+      <ActivityIndicator size="large" color="#000" style={styles.loader} />
     </View>
   );
 }
@@ -27,23 +25,20 @@ export default function Splash() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#667eea",
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-  },
-  logo: {
-    fontSize: 80,
-    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#000",
   },
   appName: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: "#fff",
+    fontSize: 24,
+    color: "#000",
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "#000",
     marginBottom: 40,
   },
   loader: {

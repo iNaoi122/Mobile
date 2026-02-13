@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -5,9 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import StatusBar from "../components/StatusBar";
 import TabBar from "../components/TabBar";
+import WeatherBackground from "../components/WeatherBackground";
+import { useSettings } from "../contexts/SettingsContext";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type SettingItemProps = {
   label: string;
@@ -15,6 +19,8 @@ type SettingItemProps = {
   isToggle?: boolean;
   isActive?: boolean;
   onToggle?: () => void;
+  onPress?: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
 };
 
 function SettingItem({
@@ -23,146 +29,309 @@ function SettingItem({
   isToggle,
   isActive,
   onToggle,
+  onPress,
+  icon,
 }: SettingItemProps) {
+  const colors = useThemeColors();
+
+  const handlePress = () => {
+    if (onToggle) {
+      onToggle();
+    } else if (onPress) {
+      onPress();
+    }
+  };
+
   return (
-    <View style={styles.settingItem}>
-      <Text style={styles.settingLabel}>{label}</Text>
-      {isToggle ? (
-        <TouchableOpacity
-          style={[styles.toggle, isActive && styles.toggleActive]}
-          onPress={onToggle}
-        >
+    <TouchableOpacity
+      style={[styles.settingItem, { borderBottomColor: colors.border }]}
+      onPress={handlePress}
+      disabled={!isToggle && !onPress}
+    >
+      <View style={styles.settingLeft}>
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={22}
+            color={colors.text}
+            style={{ opacity: 0.7 }}
+          />
+        )}
+        <Text style={[styles.settingLabel, { color: colors.text }]}>
+          {label}
+        </Text>
+      </View>
+      <View style={styles.settingRight}>
+        {isToggle ? (
           <View
             style={[
-              styles.toggleThumb,
-              isActive && styles.toggleThumbActive,
+              styles.toggle,
+              { backgroundColor: isActive ? "#4CAF50" : colors.border },
             ]}
-          />
-        </TouchableOpacity>
-      ) : (
-        <Text style={styles.settingValue}>{value}</Text>
-      )}
-    </View>
+          >
+            <View
+              style={[
+                styles.toggleKnob,
+                {
+                  backgroundColor: "#FFFFFF",
+                  transform: [{ translateX: isActive ? 18 : 2 }],
+                },
+              ]}
+            />
+          </View>
+        ) : (
+          <>
+            <Text style={[styles.settingValue, { color: colors.text }]}>
+              {value}
+            </Text>
+            {onPress && (
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.text}
+                style={{ opacity: 0.4 }}
+              />
+            )}
+          </>
+        )}
+      </View>
+    </TouchableOpacity>
   );
 }
 
 export default function Settings() {
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [weatherAlerts, setWeatherAlerts] = useState(true);
-  const [darkTheme, setDarkTheme] = useState(false);
+  const {
+    theme,
+    temperatureUnit,
+    windSpeedUnit,
+    pushNotifications,
+    weatherAlerts,
+    setTheme,
+    setTemperatureUnit,
+    setWindSpeedUnit,
+    setPushNotifications,
+    setWeatherAlerts,
+    getTemperatureSymbol,
+    getWindSpeedSymbol,
+  } = useSettings();
+  const colors = useThemeColors();
+
+  const handleToggleTheme = async () => {
+    try {
+      await setTheme(theme === "light" ? "dark" : "light");
+    } catch (error) {
+      console.error("Error toggling theme:", error);
+    }
+  };
+
+  const handleToggleTemperature = async () => {
+    try {
+      await setTemperatureUnit(
+        temperatureUnit === "metric" ? "imperial" : "metric",
+      );
+    } catch (error) {
+      console.error("Error toggling temperature unit:", error);
+    }
+  };
+
+  const handleToggleWindSpeed = async () => {
+    try {
+      await setWindSpeedUnit(windSpeedUnit === "kmh" ? "mph" : "kmh");
+    } catch (error) {
+      console.error("Error toggling wind speed unit:", error);
+    }
+  };
+
+  const handleTogglePushNotifications = async () => {
+    try {
+      await setPushNotifications(!pushNotifications);
+    } catch (error) {
+      console.error("Error toggling push notifications:", error);
+    }
+  };
+
+  const handleToggleWeatherAlerts = async () => {
+    try {
+      await setWeatherAlerts(!weatherAlerts);
+    } catch (error) {
+      console.error("Error toggling weather alerts:", error);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar color="#000" />
+    <WeatherBackground>
+      <View style={styles.container}>
+        <StatusBar />
 
-      <View style={styles.settingsHeader}>
-        <Text style={styles.settingsTitle}>Настройки</Text>
+        <View
+          style={[
+            styles.settingsHeader,
+            {
+              borderBottomColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.settingsTitle, { color: colors.text }]}>
+            Настройки
+          </Text>
+        </View>
+
+        <ScrollView style={styles.settingsContent}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            ЕДИНИЦЫ ИЗМЕРЕНИЯ
+          </Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <SettingItem
+              icon="thermometer-outline"
+              label="Температура"
+              value={getTemperatureSymbol()}
+              onPress={handleToggleTemperature}
+            />
+            <SettingItem
+              icon="speedometer-outline"
+              label="Скорость ветра"
+              value={getWindSpeedSymbol()}
+              onPress={handleToggleWindSpeed}
+            />
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            УВЕДОМЛЕНИЯ
+          </Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <SettingItem
+              icon="notifications-outline"
+              label="Push уведомления"
+              isToggle
+              isActive={pushNotifications}
+              onToggle={handleTogglePushNotifications}
+            />
+            <SettingItem
+              icon="alert-circle-outline"
+              label="Погодные предупреждения"
+              isToggle
+              isActive={weatherAlerts}
+              onToggle={handleToggleWeatherAlerts}
+            />
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            ВНЕШНИЙ ВИД
+          </Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <SettingItem
+              icon="moon-outline"
+              label="Тёмная тема"
+              isToggle
+              isActive={theme === "dark"}
+              onToggle={handleToggleTheme}
+            />
+            <SettingItem icon="language-outline" label="Язык" value="Русский" />
+          </View>
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            О ПРИЛОЖЕНИИ
+          </Text>
+          <View
+            style={[
+              styles.section,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <SettingItem
+              icon="information-circle-outline"
+              label="Версия"
+              value="1.0.0"
+            />
+          </View>
+        </ScrollView>
+
+        <TabBar />
       </View>
-
-      <ScrollView style={styles.settingsContent}>
-        <Text style={styles.sectionTitle}>ЕДИНИЦЫ ИЗМЕРЕНИЯ</Text>
-        <SettingItem label="Температура" value="°C" />
-        <SettingItem label="Скорость ветра" value="км/ч" />
-
-        <Text style={styles.sectionTitle}>УВЕДОМЛЕНИЯ</Text>
-        <SettingItem
-          label="Push уведомления"
-          isToggle
-          isActive={pushNotifications}
-          onToggle={() => setPushNotifications(!pushNotifications)}
-        />
-        <SettingItem
-          label="Погодные предупреждения"
-          isToggle
-          isActive={weatherAlerts}
-          onToggle={() => setWeatherAlerts(!weatherAlerts)}
-        />
-
-        <Text style={styles.sectionTitle}>ВНЕШНИЙ ВИД</Text>
-        <SettingItem
-          label="Тёмная тема"
-          isToggle
-          isActive={darkTheme}
-          onToggle={() => setDarkTheme(!darkTheme)}
-        />
-        <SettingItem label="Язык" value="Русский" />
-
-        <Text style={styles.sectionTitle}>О ПРИЛОЖЕНИИ</Text>
-        <SettingItem label="Версия" value="1.0.0" />
-      </ScrollView>
-
-      <TabBar />
-    </View>
+    </WeatherBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   settingsHeader: {
     paddingHorizontal: 20,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   settingsTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#000",
+    fontSize: 24,
   },
   settingsContent: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#999",
-    marginTop: 30,
-    marginBottom: 15,
+    marginTop: 20,
+    marginBottom: 10,
+    marginHorizontal: 20,
     letterSpacing: 1,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   settingItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+  },
+  settingLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
   },
   settingLabel: {
     fontSize: 16,
-    color: "#000",
+    fontWeight: "500",
+  },
+  settingRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   settingValue: {
-    fontSize: 16,
-    color: "#999",
+    fontSize: 15,
+    opacity: 0.7,
   },
   toggle: {
-    width: 51,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: "#e0e0e0",
-    padding: 2,
+    width: 44,
+    height: 24,
+    borderRadius: 12,
     justifyContent: "center",
   },
-  toggleActive: {
-    backgroundColor: "#667eea",
-  },
-  toggleThumb: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  toggleThumbActive: {
-    transform: [{ translateX: 20 }],
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
 });

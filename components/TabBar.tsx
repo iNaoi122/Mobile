@@ -1,24 +1,31 @@
+import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter, usePathname } from "expo-router";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type TabItem = {
-  icon: string;
   label: string;
   path: string;
 };
 
 const tabs: TabItem[] = [
-  { icon: "🏠", label: "Главная", path: "/" },
-  { icon: "📊", label: "Прогноз", path: "/forecast" },
-  { icon: "⚙️", label: "Настройки", path: "/settings" },
+  { label: "Главная", path: "/" },
+  { label: "Прогноз", path: "/forecast" },
+  { label: "Настройки", path: "/settings" },
 ];
 
 export default function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const colors = useThemeColors();
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.tabBar, borderTopColor: colors.border },
+      ]}
+    >
       {tabs.map((tab) => {
         const isActive = pathname === tab.path;
         return (
@@ -27,14 +34,8 @@ export default function TabBar() {
             style={styles.tabItem}
             onPress={() => router.push(tab.path as any)}
           >
-            <Text style={styles.tabIcon}>{tab.icon}</Text>
-            <Text
-              style={[
-                styles.tabLabel,
-                isActive && styles.tabLabelActive,
-              ]}
-            >
-              {tab.label}
+            <Text style={[styles.tabLabel, { color: colors.text }]}>
+              {isActive ? `[${tab.label}]` : tab.label}
             </Text>
           </TouchableOpacity>
         );
@@ -48,27 +49,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "#fff",
-    paddingVertical: 10,
+    paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
   },
   tabItem: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 5,
+    paddingVertical: 10,
     flex: 1,
   },
-  tabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
   tabLabel: {
-    fontSize: 11,
-    color: "#999",
-  },
-  tabLabelActive: {
-    color: "#667eea",
-    fontWeight: "600",
+    fontSize: 14,
   },
 });

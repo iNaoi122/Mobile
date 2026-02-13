@@ -1,179 +1,313 @@
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import StatusBar from "../components/StatusBar";
 import TabBar from "../components/TabBar";
+import WeatherBackground from "../components/WeatherBackground";
+import { useWeather } from "../contexts/WeatherContext";
+import { useSettings } from "../contexts/SettingsContext";
+import { useThemeColors } from "../hooks/useThemeColors";
 
 type HourlyItemProps = {
   time: string;
-  icon: string;
   temp: string;
+  weatherCode?: number;
 };
 
-function HourlyItem({ time, icon, temp }: HourlyItemProps) {
+function HourlyItem({ time, temp, weatherCode }: HourlyItemProps) {
+  const colors = useThemeColors();
+
+  const getWeatherIcon = (code?: number) => {
+    if (code === undefined) return "cloudy";
+    if (code <= 1) return "sunny";
+    if (code <= 3) return "partly-sunny";
+    if (code >= 95) return "thunderstorm";
+    if (code >= 71) return "snow";
+    if (code >= 51) return "rainy";
+    if (code >= 45) return "cloudy";
+    return "cloudy";
+  };
+
   return (
     <View style={styles.hourlyItem}>
-      <Text style={styles.hourlyTime}>{time}</Text>
-      <Text style={styles.hourlyIcon}>{icon}</Text>
-      <Text style={styles.hourlyTemp}>{temp}°</Text>
+      <Text style={[styles.hourlyTime, { color: colors.text }]}>{time}</Text>
+      <Ionicons
+        name={getWeatherIcon(weatherCode)}
+        size={28}
+        color={colors.text}
+        style={{ marginVertical: 8 }}
+      />
+      <Text style={[styles.hourlyTemp, { color: colors.text }]}>{temp}</Text>
     </View>
   );
 }
 
 type DailyItemProps = {
   day: string;
-  icon: string;
   high: string;
   low: string;
+  weatherCode?: number;
 };
 
-function DailyItem({ day, icon, high, low }: DailyItemProps) {
+function DailyItem({ day, high, low, weatherCode }: DailyItemProps) {
+  const colors = useThemeColors();
+
+  const getWeatherIcon = (code?: number) => {
+    if (code === undefined) return "cloudy";
+    if (code <= 1) return "sunny";
+    if (code <= 3) return "partly-sunny";
+    if (code >= 95) return "thunderstorm";
+    if (code >= 71) return "snow";
+    if (code >= 51) return "rainy";
+    if (code >= 45) return "cloudy";
+    return "cloudy";
+  };
+
   return (
-    <View style={styles.dailyItem}>
-      <Text style={styles.dailyDay}>{day}</Text>
-      <Text style={styles.dailyIcon}>{icon}</Text>
-      <View style={styles.dailyTemps}>
-        <Text style={styles.tempHigh}>{high}°</Text>
-        <Text style={styles.tempLow}>{low}°</Text>
+    <View style={[styles.dailyItem, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.dailyDay, { color: colors.text }]}>{day}</Text>
+      <View style={styles.dailyContent}>
+        <Ionicons
+          name={getWeatherIcon(weatherCode)}
+          size={24}
+          color={colors.text}
+        />
+        <View style={styles.dailyTemps}>
+          <View style={styles.tempItem}>
+            <Ionicons name="arrow-up" size={14} color="#FF6B6B" />
+            <Text style={[styles.temp, { color: colors.text }]}>{high}</Text>
+          </View>
+          <View style={styles.tempItem}>
+            <Ionicons name="arrow-down" size={14} color="#4ECDC4" />
+            <Text style={[styles.temp, { color: colors.text }]}>{low}</Text>
+          </View>
+        </View>
       </View>
     </View>
   );
 }
 
 export default function Forecast() {
+  const { currentWeather, forecast, isLoading, error } = useWeather();
+  const { getTemperatureSymbol } = useSettings();
+  const colors = useThemeColors();
+
+  if (isLoading) {
+    return (
+      <WeatherBackground>
+        <View style={styles.container}>
+          <StatusBar />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.loader} />
+            <Text style={[styles.loadingText, { color: colors.text }]}>
+              Загрузка прогноза...
+            </Text>
+          </View>
+          <TabBar />
+        </View>
+      </WeatherBackground>
+    );
+  }
+
+  if (error || !forecast || !currentWeather) {
+    return (
+      <WeatherBackground>
+        <View style={styles.container}>
+          <StatusBar />
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { color: colors.text }]}>
+              {error || "Нет данных прогноза"}
+            </Text>
+          </View>
+          <TabBar />
+        </View>
+      </WeatherBackground>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.statusBarContainer}>
-        <StatusBar color="#fff" />
-      </View>
+    <WeatherBackground weatherCode={currentWeather.weatherCode}>
+      <View style={styles.container}>
+        <StatusBar />
 
-      <View style={styles.forecastHeader}>
-        <Text style={styles.forecastCity}>Будапешт</Text>
-        <Text style={styles.forecastSubtitle}>Прогноз на неделю</Text>
-      </View>
-
-      <ScrollView style={styles.content}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.hourlyScroll}
+        <View
+          style={[
+            styles.forecastHeader,
+            {
+              borderBottomColor: colors.border,
+            },
+          ]}
         >
-          <HourlyItem time="Сейчас" icon="☀️" temp="24" />
-          <HourlyItem time="14:00" icon="🌤️" temp="26" />
-          <HourlyItem time="15:00" icon="⛅" temp="25" />
-          <HourlyItem time="16:00" icon="🌥️" temp="23" />
-          <HourlyItem time="17:00" icon="☁️" temp="22" />
-          <HourlyItem time="18:00" icon="🌤️" temp="21" />
+          <Text style={[styles.forecastCity, { color: colors.text }]}>
+            {currentWeather.city}
+          </Text>
+          <Text style={[styles.forecastSubtitle, { color: colors.text }]}>
+            Прогноз на неделю
+          </Text>
+        </View>
+
+        <ScrollView style={styles.content}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            ПОЧАСОВОЙ ПРОГНОЗ
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={[
+              styles.hourlyScroll,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            {forecast.hourly.map((item, index) => (
+              <HourlyItem
+                key={index}
+                time={item.time}
+                temp={`${item.temperature}${getTemperatureSymbol()}`}
+                weatherCode={item.weatherCode}
+              />
+            ))}
+          </ScrollView>
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            НА НЕДЕЛЮ
+          </Text>
+          <View
+            style={[
+              styles.dailyList,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            {forecast.daily.map((item, index) => (
+              <DailyItem
+                key={index}
+                day={item.day}
+                high={`${item.tempMax}${getTemperatureSymbol()}`}
+                low={`${item.tempMin}${getTemperatureSymbol()}`}
+                weatherCode={item.weatherCode}
+              />
+            ))}
+          </View>
         </ScrollView>
 
-        <View style={styles.dailyList}>
-          <DailyItem day="Сегодня" icon="⛅" high="26" low="18" />
-          <DailyItem day="Завтра" icon="🌤️" high="28" low="19" />
-          <DailyItem day="Четверг" icon="☀️" high="30" low="21" />
-          <DailyItem day="Пятница" icon="⛅" high="27" low="20" />
-          <DailyItem day="Суббота" icon="🌧️" high="22" low="16" />
-          <DailyItem day="Воскресенье" icon="🌤️" high="24" low="17" />
-          <DailyItem day="Понедельник" icon="☀️" high="26" low="18" />
-        </View>
-      </ScrollView>
-
-      <TabBar />
-    </View>
+        <TabBar />
+      </View>
+    </WeatherBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-  },
-  statusBarContainer: {
-    backgroundColor: "#667eea",
   },
   forecastHeader: {
-    backgroundColor: "#667eea",
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
+    paddingTop: 15,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
   },
   forecastCity: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#fff",
+    fontSize: 24,
     marginBottom: 5,
   },
   forecastSubtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
   },
   content: {
     flex: 1,
   },
+  sectionTitle: {
+    fontSize: 12,
+    marginTop: 20,
+    marginBottom: 10,
+    marginHorizontal: 20,
+    letterSpacing: 1,
+  },
   hourlyScroll: {
-    backgroundColor: "#f8f9ff",
-    paddingVertical: 20,
+    paddingVertical: 15,
     paddingHorizontal: 10,
+    marginHorizontal: 20,
+    borderWidth: 1,
+    borderRadius: 12,
   },
   hourlyItem: {
     alignItems: "center",
     justifyContent: "center",
     marginHorizontal: 10,
     paddingHorizontal: 15,
+    paddingVertical: 10,
   },
   hourlyTime: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
-  },
-  hourlyIcon: {
-    fontSize: 32,
-    marginBottom: 10,
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
   },
   hourlyTemp: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000",
   },
   dailyList: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   dailyItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   dailyDay: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#000",
     flex: 1,
+    fontWeight: "500",
   },
-  dailyIcon: {
-    fontSize: 28,
-    marginHorizontal: 20,
+  dailyContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   dailyTemps: {
     flexDirection: "row",
     alignItems: "center",
-    minWidth: 80,
-    justifyContent: "flex-end",
+    gap: 12,
   },
-  tempHigh: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-    marginRight: 10,
+  tempItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  tempLow: {
-    fontSize: 18,
-    fontWeight: "400",
-    color: "#999",
+  temp: {
+    fontSize: 15,
+    fontWeight: "500",
+    minWidth: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: "center",
   },
 });
